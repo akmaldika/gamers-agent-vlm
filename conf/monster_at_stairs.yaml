@@ -1,0 +1,10 @@
+# @package _global_
+
+defaults:
+  - config
+
+map_file: "data/map_dataset/5_basic_combat/monster_at_stairs.txt"
+max_steps: 35
+
+log:
+  naming: "monster_at_stairs"

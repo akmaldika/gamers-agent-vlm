@@ -1,0 +1,10 @@
+# @package _global_
+
+defaults:
+  - config
+
+map_file: "data/map_dataset/3_single_threat_avoidance/center_monster_open_room.txt"
+max_steps: 20
+
+log:
+  naming: "center_monster_open_room"

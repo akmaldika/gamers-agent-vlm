@@ -1,0 +1,10 @@
+# @package _global_
+
+defaults:
+  - config
+
+map_file: "data/map_dataset/6_tactical_combat_choice/approaching_monster.txt"
+max_steps: 40
+
+log:
+  naming: "approaching_monster"

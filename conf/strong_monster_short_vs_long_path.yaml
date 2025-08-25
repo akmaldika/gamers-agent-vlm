@@ -1,0 +1,10 @@
+# @package _global_
+
+defaults:
+  - config
+
+map_file: "data/map_dataset/6_tactical_combat_choice/strong_monster_short_vs_long_path.txt"
+max_steps: 50
+
+log:
+  naming: "strong_monster_short_vs_long_path"

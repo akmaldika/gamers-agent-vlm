@@ -1,0 +1,10 @@
+# @package _global_
+
+defaults:
+  - config
+
+map_file: "data/map_dataset/4_multiple_threat_avoidance/two_path_two_monsters.txt"
+max_steps: 45
+
+log:
+  naming: "two_path_two_monsters"

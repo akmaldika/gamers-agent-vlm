@@ -1,0 +1,11 @@
+# @package _global_
+# Simple navigation maps
+
+defaults:
+  - config
+
+map_file: "data/map_dataset/1_simple_navigation/single_turn.txt"
+max_steps: 25
+
+log:
+  naming: "single_turn"

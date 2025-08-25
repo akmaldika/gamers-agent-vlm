@@ -1,0 +1,10 @@
+# @package _global_
+
+defaults:
+  - config
+
+map_file: "data/map_dataset/2_maze_exploration/simple_maze.txt"
+max_steps: 30
+
+log:
+  naming: "simple_maze"

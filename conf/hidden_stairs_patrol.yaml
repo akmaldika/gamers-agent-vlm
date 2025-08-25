@@ -1,0 +1,10 @@
+# @package _global_
+
+defaults:
+  - config
+
+map_file: "data/map_dataset/7_exploration_with_threat/hidden_stairs_patrol.txt"
+max_steps: 60
+
+log:
+  naming: "hidden_stairs_patrol"

@@ -1,0 +1,10 @@
+# @package _global_
+
+defaults:
+  - config
+
+map_file: "data/map_dataset/5_basic_combat/junction_monster.txt"
+max_steps: 30
+
+log:
+  naming: "junction_monster"

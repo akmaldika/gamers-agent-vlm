@@ -1,0 +1,8 @@
+# @package _global_
+# Maze exploration maps
+
+defaults:
+  - config
+
+map_file: "data/map_dataset/2_maze_exploration/simple_maze.txt"
+max_steps: 100
