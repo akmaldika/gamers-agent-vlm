@@ -1,6 +1,9 @@
 # Custom Ignore
 *.ignore.*
 */log
+/current/*
+
+/outputs/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

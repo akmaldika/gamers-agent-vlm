@@ -1,0 +1,15 @@
+numpy
+mss
+Pillow
+sv-ttk
+openai
+python-dotenv
+requests
+hydra-core
+
+pygetwindow
+pywin32
+
+# same 
+pydirectinput
+pyautogui
