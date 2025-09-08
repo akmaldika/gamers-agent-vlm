@@ -7,6 +7,7 @@ replacing direct window interaction with HTTP API calls.
 
 import requests
 import json
+import base64
 from typing import Dict, Any, Optional, List
 from PIL import Image
 from io import BytesIO
@@ -44,59 +45,85 @@ class GameAPIClient:
     
     def get_game_screenshot(self) -> Optional[Image.Image]:
         """
-        Get current game screenshot, cropped to map area only.
-        
+        Get current game screenshot. Requests raw PNG bytes (fmt=bytes) per API spec and
+        crops to the map area if dimensions are provided via headers. Falls back to
+        handling base64 JSON if server responds in b64 mode.
+
         Returns:
-            PIL Image object (cropped to map area) or None if error
+            PIL Image object (cropped to map area when possible) or None if error
         """
         try:
-            response = self.session.get(f"{self.base_url}/game-screenshot")
+            # Prefer raw PNG bytes per spec (fmt=bytes). Server will include dimensions in headers.
+            response = self.session.get(f"{self.base_url}/game-screenshot", params={"fmt": "bytes"})
             response.raise_for_status()
+
+            content_type = response.headers.get('Content-Type', '')
+
+            if content_type.startswith('image/'):
+                # Get tile and dimension information from headers
+                tile_size = int(response.headers.get('X-Tile-Size', 16))
+                total_width_tiles = int(response.headers.get('X-Total-Width-Tiles', 0))
+                total_height_tiles = int(response.headers.get('X-Total-Height-Tiles', 0))
+                map_width_tiles = int(response.headers.get('X-Map-Width-Tiles', 0))
+                map_height_tiles = int(response.headers.get('X-Map-Height-Tiles', 0))
+                total_width_pixels = int(response.headers.get('X-Total-Width-Pixels', 0))
+                total_height_pixels = int(response.headers.get('X-Total-Height-Pixels', 0))
+                map_width_pixels = int(response.headers.get('X-Map-Width-Pixels', 0))
+                map_height_pixels = int(response.headers.get('X-Map-Height-Pixels', 0))
+
+                # Convert binary data to PIL Image
+                full_image = Image.open(BytesIO(response.content))
             
-            # Get tile and dimension information from headers
-            tile_size = int(response.headers.get('X-Tile-Size', 16))
-            total_width_tiles = int(response.headers.get('X-Total-Width-Tiles', 0))
-            total_height_tiles = int(response.headers.get('X-Total-Height-Tiles', 0))
-            map_width_tiles = int(response.headers.get('X-Map-Width-Tiles', 0))
-            map_height_tiles = int(response.headers.get('X-Map-Height-Tiles', 0))
-            total_width_pixels = int(response.headers.get('X-Total-Width-Pixels', 0))
-            total_height_pixels = int(response.headers.get('X-Total-Height-Pixels', 0))
-            map_width_pixels = int(response.headers.get('X-Map-Width-Pixels', 0))
-            map_height_pixels = int(response.headers.get('X-Map-Height-Pixels', 0))
-            
-            # Convert binary data to PIL Image
-            full_image = Image.open(BytesIO(response.content))
-            
-            # Calculate crop coordinates to extract only the map area
-            # The map area starts from top-left corner (0,0)
-            if map_width_pixels > 0 and map_height_pixels > 0:
-                # Map starts at top-left, so no offset needed
-                left = 0
-                top = 0
-                right = map_width_pixels
-                bottom = map_height_pixels
-                
-                # Ensure crop coordinates are within image bounds
-                right = min(right, full_image.width)
-                bottom = min(bottom, full_image.height)
-                
-                # Crop to map area only (from top-left)
-                cropped_image = full_image.crop((left, top, right, bottom))
-                
-                # Store tile info in image info dictionary
-                cropped_image.info['tile_size'] = tile_size
-                cropped_image.info['width_tiles'] = map_width_tiles
-                cropped_image.info['height_tiles'] = map_height_tiles
-                cropped_image.info['total_width_tiles'] = total_width_tiles
-                cropped_image.info['total_height_tiles'] = total_height_tiles
-                
-                return cropped_image
+                # Calculate crop coordinates to extract only the map area
+                # The map area starts from top-left corner (0,0)
+                if map_width_pixels > 0 and map_height_pixels > 0:
+                    # Map starts at top-left, so no offset needed
+                    left = 0
+                    top = 0
+                    right = map_width_pixels
+                    bottom = map_height_pixels
+
+                    # Ensure crop coordinates are within image bounds
+                    right = min(right, full_image.width)
+                    bottom = min(bottom, full_image.height)
+
+                    # Crop to map area only (from top-left)
+                    cropped_image = full_image.crop((left, top, right, bottom))
+
+                    # Store tile info in image info dictionary
+                    cropped_image.info['tile_size'] = tile_size
+                    cropped_image.info['width_tiles'] = map_width_tiles
+                    cropped_image.info['height_tiles'] = map_height_tiles
+                    cropped_image.info['total_width_tiles'] = total_width_tiles
+                    cropped_image.info['total_height_tiles'] = total_height_tiles
+
+                    return cropped_image
+                else:
+                    # Fallback: return full image if map dimensions not available
+                    full_image.info['tile_size'] = tile_size
+                    full_image.info['width_tiles'] = total_width_tiles
+                    full_image.info['height_tiles'] = total_height_tiles
+                    return full_image
             else:
-                # Fallback: return full image if map dimensions not available
-                full_image.info['tile_size'] = tile_size
-                full_image.info['width_tiles'] = total_width_tiles
-                full_image.info['height_tiles'] = total_height_tiles
-                return full_image
+                # Fallback if server returned JSON (fmt=b64)
+                data = response.json()
+                b64 = data.get("screenshot_png_base64")
+                if not b64:
+                    logger.error("Missing screenshot_png_base64 in response")
+                    return None
+                img_bytes = BytesIO(base64.b64decode(b64))
+                img = Image.open(img_bytes)
+                # Attach metadata when available
+                for k_src, k_dst in [
+                    ("tile_size", "tile_size"),
+                    ("map_width_tiles", "width_tiles"),
+                    ("map_height_tiles", "height_tiles"),
+                    ("total_width_tiles", "total_width_tiles"),
+                    ("total_height_tiles", "total_height_tiles"),
+                ]:
+                    if k_src in data:
+                        img.info[k_dst] = data[k_src]
+                return img
             
         except requests.RequestException as e:
             logger.error(f"Error getting game screenshot: {e}")
@@ -110,8 +137,8 @@ class GameAPIClient:
         Start a new game.
         
         Args:
-            mode: Game mode - "custom", "procedural", or "string"
-            custom_map: Map string for "string" mode
+            mode: Game mode - "procedural" or "string"
+            custom_map: ASCII map string for "string" mode
             
         Returns:
             Initial game state or None if error
@@ -201,7 +228,8 @@ class GameAPIClient:
         """
         try:
             response = self.session.get(f"{self.base_url}/game-state", timeout=5)
-            return response.status_code in [200, 404]  # 404 might mean no game started yet
+            # 200: OK; 400: No active game session per spec
+            return response.status_code in (200, 400)
         except requests.RequestException:
             return False
 

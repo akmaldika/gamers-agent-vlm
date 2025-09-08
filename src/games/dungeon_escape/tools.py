@@ -7,17 +7,12 @@ replacing direct window interaction with HTTP API calls.
 """
 
 from PIL import Image
-import sys
 import os
-
-# Add the parent directory to sys.path to import game_api_client
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from game_api_client import GameAPIClient, get_api_client
 
 
-def get_game_screenshot(window_title: str = "", path: str = "", crop_to_map: bool = True, 
-                       map_width_tiles: int = 16, map_height_tiles: int = 9) -> Image.Image | None:
+def get_game_screenshot(path: str = "") -> Image.Image | None:
     """
     Captures a screenshot of the game via API.
     
@@ -30,9 +25,7 @@ def get_game_screenshot(window_title: str = "", path: str = "", crop_to_map: boo
 
     Returns:
         PIL Image object if successful, or None if failed.
-    """
-    print("Capturing screenshot via API...")
-    
+    """    
     try:
         client = get_api_client()
         image = client.get_game_screenshot()
@@ -63,8 +56,6 @@ def send_key(key: str, window_title: str = 'Dungeon Escape AI') -> bool:
     Returns:
         True if action was successful, False otherwise
     """
-    print(f"Sending action '{key}' via API...")
-    
     try:
         client = get_api_client()
         result = client.perform_action(key)
