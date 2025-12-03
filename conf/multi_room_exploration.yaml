@@ -4,7 +4,8 @@ defaults:
   - config
 
 map_file: "data/map_dataset/7_exploration_with_threat/multi_room_exploration.txt"
-max_steps: 80
+agent:
+  max_loops: 80
 
 log:
   naming: "multi_room_exploration"

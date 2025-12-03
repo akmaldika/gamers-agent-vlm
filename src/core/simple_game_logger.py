@@ -51,7 +51,7 @@ class SimpleGameLogger:
             # No legacy step-based fields
         }
 
-        print(f"📂 Session created: {self.session_dir}")
+        print(f"Session created: {self.session_dir}")
     
     def _get_next_game_number(self) -> int:
         """Get the next game number by checking existing directories."""
@@ -77,7 +77,7 @@ class SimpleGameLogger:
         """Set the system prompt (only once)."""
         if self.session_data["system_prompt"] is None:
             self.session_data["system_prompt"] = system_prompt
-            print(f"📝 System prompt set (length: {len(system_prompt)} chars)")
+            print(f"System prompt set (length: {len(system_prompt)} chars)")
     
     def log_step(self, step_number: int, input_messages: List[Dict], output_response: Any,
                  parsed_action: Dict, image_path: Optional[str] = None):
@@ -146,7 +146,7 @@ class SimpleGameLogger:
         rel_image_path = loop_data.get("image_path")
         self._save_input_output_files(step_number, input_messages, output_response, rel_image_path)
 
-        print(f"📝 Loop {step_number} logged (JSON format + input/output files)")
+        print(f"Loop {step_number} logged (JSON format + input/output files)")
     
     def _save_input_output_files(self, step_number: int, input_messages: List[Dict], 
                                 output_response: Any, image_path: Optional[str] = None):
@@ -171,7 +171,7 @@ class SimpleGameLogger:
         with open(input_file_loop, 'w', encoding='utf-8') as f:
             f.write(input_content)
 
-        print(f"📄 Saved input_loop_{step_number}.txt & output_loop_{step_number}.txt")
+        print(f"Saved input_loop_{step_number}.txt & output_loop_{step_number}.txt")
     
     def _format_input_messages(self, input_messages: List[Dict], image_path: Optional[str] = None) -> str:
         """
@@ -179,7 +179,7 @@ class SimpleGameLogger:
         
         Args:
             input_messages: List of message dicts
-            image_path: Path to image if any
+            image_path: Path to current game screenshot (for observation image only)
             
         Returns:
             Formatted string with tags
@@ -203,10 +203,26 @@ class SimpleGameLogger:
                         formatted_content.append("</content>")
                     elif item.get("type") == "image_url":
                         formatted_content.append("<content>")
-                        if image_path:
+                        
+                        # Extract original_path from image_url object if available
+                        image_url_obj = item.get("image_url", {})
+                        original_path = None
+                        
+                        if isinstance(image_url_obj, dict):
+                            # Check if there's an original_path metadata
+                            original_path = image_url_obj.get("original_path")
+                        
+                        # Determine which path to log
+                        if original_path:
+                            # Visual tiles or few-shot examples have original_path
+                            formatted_content.append(f"{{image_path: {original_path}}}")
+                        elif image_path:
+                            # Game screenshot observation
                             formatted_content.append(f"{{image_path: {image_path}}}")
                         else:
+                            # Fallback
                             formatted_content.append("{image_attachment}")
+                        
                         formatted_content.append("</content>")
                 
                 formatted_content.append(f"</{role}_prompt>")

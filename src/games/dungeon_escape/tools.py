@@ -140,21 +140,21 @@ if __name__ == "__main__":
     # Test connection
     client = get_api_client()
     if client.check_connection():
-        print("✓ API server is accessible")
+        print(" API server is accessible")
     else:
-        print("✗ API server is not accessible")
+        print(" API server is not accessible")
         exit(1)
     
     # Test screenshot
     image = get_game_screenshot()
     if image:
-        print("✓ Screenshot captured successfully")
+        print(" Screenshot captured successfully")
     else:
-        print("✗ Failed to capture screenshot")
+        print(" Failed to capture screenshot")
     
     # Test game state
     state = get_game_state()
     if state:
-        print(f"✓ Game state retrieved: {state}")
+        print(f"Game state retrieved: {state}")
     else:
-        print("✗ Failed to get game state")
+        print("Failed to get game state")

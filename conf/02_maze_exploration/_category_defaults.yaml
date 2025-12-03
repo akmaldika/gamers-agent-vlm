@@ -1,0 +1,27 @@
+# @package _global_
+# Category-level config for 02_maze_exploration
+# This inherits from root config and adds maze-exploration-specific defaults
+model: "gpt-4.1-mini"
+# model: "gpt-4o-mini"
+# model: "gpt-5"
+# model: "glm-4.5V"
+
+defaults:
+  - /config  # ABSOLUTE path to root config.yaml (with leading slash)
+
+# Maze exploration category defaults
+agent:
+  max_loops: 75  # Longer mazes need extra turns
+thinking_level: "none"  # Keep deterministic unless overridden per scenario
+
+# Default prompt settings for maze exploration
+prompt:
+  history_count: 5        # Maze tasks benefit from short memory
+  use_fewshot: false      # Start with zero-shot
+  use_visual_tiles: false # Text-only by default
+  action_history_count: 50
+  cache_system_prompt: false
+
+# Default log naming pattern for maze exploration
+log:
+  naming: "maze-{session_id}-{model_name}"

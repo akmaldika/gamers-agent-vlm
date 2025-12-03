@@ -4,7 +4,8 @@ defaults:
   - config
 
 map_file: "data/map_dataset/4_multiple_threat_avoidance/large_room_three_monsters.txt"
-max_steps: 40
+agent:
+  max_loops: 40
 
 log:
   naming: "large_room_three_monsters"

@@ -1,0 +1,17 @@
+# @package _global_
+
+defaults:
+  - config
+
+map_file: "data/map_dataset/3_combat_or_single_threat_avoidance/blocking_monster_left_path.txt"
+agent:
+  max_loops: 150
+
+prompt:
+  history_count: 0  # Number of previous steps to include in prompt (0-5)
+  use_fewshot: false  # true for few-shot examples, false for zero-shot
+  use_visual_tiles: true  # true to include tile images in system prompt, false for text-only
+
+
+log:
+  naming: "blocking_monster_left_path"

@@ -1,0 +1,22 @@
+# @package _global_
+
+defaults:
+  - config
+
+
+# model: "gpt-4o-mini"  # Options: gpt-4o-mini, gpt-4o
+
+map_file: "data/map_dataset/02_maze_exploration/medium_maze_1.txt"
+agent:
+  max_loops: 35
+
+# Prompt settings
+prompt:
+  history_count: 0  # Number of previous steps to include in prompt (0-5)
+  use_fewshot: false  # true for few-shot examples, false for zero-shot
+  use_visual_tiles: true  # true to include tile images in system prompt, false for text-only
+  action_history_count: 25  # Number of recent actions to show in prompt (0 to disable)
+
+
+log:
+  naming: "medium_maze_1-0-n-y-y-all"

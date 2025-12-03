@@ -4,7 +4,8 @@ defaults:
   - config
 
 map_file: "data/map_dataset/7_exploration_with_threat/large_random_monsters.txt"
-max_steps: 70
+agent:
+  max_loops: 70
 
 log:
   naming: "large_random_monsters"

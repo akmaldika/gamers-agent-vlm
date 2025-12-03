@@ -4,7 +4,8 @@ defaults:
   - config
 
 map_file: "data/map_dataset/3_single_threat_avoidance/narrow_corridor_monster.txt"
-max_steps: 30
+agent:
+  max_loops: 30
 
 log:
   naming: "narrow_corridor_monster"

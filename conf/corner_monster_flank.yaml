@@ -4,7 +4,8 @@ defaults:
   - config
 
 map_file: "data/map_dataset/6_tactical_combat_choice/corner_monster_flank.txt"
-max_steps: 45
+agent:
+  max_loops: 45
 
 log:
   naming: "corner_monster_flank"

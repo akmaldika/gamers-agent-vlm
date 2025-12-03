@@ -1,0 +1,25 @@
+# @package _global_
+
+# Config chain: config.yaml → _category_defaults → this file
+defaults:
+  - _category_defaults  # Loads _category_defaults.yaml from same folder
+  - _self_              # Ensure this file's values override defaults
+
+# Specific settings for t junction 15
+map_file: "data/map_dataset/01_navigation/t_junction_15.txt"
+
+log:
+  # naming: "t_junction_15-h0-ah-fs0-vt0-limited-{model_name}"
+  naming: "t_junction_15-h0-ah-fs0-vt0-limited-{model_name}"
+
+# h0: 0 history count / hf5 : 5 history count
+# ah: action history count / ah0 (no action history use)
+# fs0: no few shot / fs: with few shot
+# vt0: no visual tiles  / vt: with visual tiles
+# all: all valid action / limited: limited valid action
+
+prompt:
+  history_count: 0       # Navigation usually doesn't need history
+  use_fewshot: false      # Start with zero-shot
+  use_visual_tiles: false  # Text-only by default
+  # action_history_count: 25

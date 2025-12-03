@@ -4,7 +4,8 @@ defaults:
   - config
 
 map_file: "data/map_dataset/5_basic_combat/close_combat_start.txt"
-max_steps: 25
+agent:
+  max_loops: 25
 
 log:
   naming: "close_combat_start"

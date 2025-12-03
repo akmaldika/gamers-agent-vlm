@@ -3,8 +3,6 @@ from typing import List, Dict, Any
 import base64
 import os
 
-chest = "src/games/dungeon_escape/assets/chest.png"
-crab = "src/games/dungeon_escape/assets/crab.png"
 dark_floor = "src/games/dungeon_escape/assets/dark_floor.png"
 dark_wall = "src/games/dungeon_escape/assets/dark_wall.png"
 floor = "src/games/dungeon_escape/assets/floor.png"
@@ -73,19 +71,24 @@ def get_fewshot_examples(mode: int = 0) -> List[Dict[str, Any]]:
     return []
 
 
+# TILE_TYPES = """
+# - player (you): The player character. A person with brown hair and a blue scarf and red pants
+# - floor: A walkable tile. Teal-colored with a soft light dot in the center.
+# - floor_dark: An unlit/out-of-sight floor tile. A darker version of the standard floor tile.
+# - walls : you CANNOT pass this.  A wall made of light grey bricks.
+# - wall_dark: you CANNOT pass this: An unlit/out-of-sight wall. A darker, bluer version of the standard wall.
+# - ladder: press 'space' to descend when standing on it: A section of a wooden or copper-colored pixel art ladder.
+# - ghost: An easy enemy. A classic, light-grey pixel art ghost with its arms raised. You attack it by moving into it.
+# """
+
 TILE_TYPES = """
 - player (you): The player character. A person with brown hair and a blue scarf and red pants
 - floor: A walkable tile. Teal-colored with a soft light dot in the center.
-- floor_dark: An unlit/out-of-sight floor tile. A darker version of the standard floor tile.
 - walls : you CANNOT pass this.  A wall made of light grey bricks.
-- wall_dark: you CANNOT pass this: An unlit/out-of-sight wall. A darker, bluer version of the standard wall.
-- ladder: press 'space' to descend when standing on it: A section of a wooden or copper-colored pixel art ladder.
-- chest: A pixel art treasure chest, seemingly made of wood with metallic blue/silver reinforcements.
-- ghost: An easy enemy. A classic, light-grey pixel art ghost with its arms raised. You attack it by moving into it.
-- crab: a hard enemy. A red pixel art crab with large claws and small black eyes. You attack it by moving into it.
+- ladder: press 'space' to descend ONLY when standing EXACTLY on it (same coordinate): A section of a wooden or copper-colored pixel art ladder.
 """
 
-chest = "src/games/dungeon_escape/assets/chest.png"
+
 crab = "src/games/dungeon_escape/assets/crab.png"
 # dark_floor = "src/games/dungeon_escape/assets/dark_floor.png"
 # dark_wall = "src/games/dungeon_escape/assets/dark_wall.png"
@@ -122,58 +125,50 @@ def get_tile_types(mode: int) -> str | List[Dict[str, Any]]:
         floor_url = _file_to_data_url(floor)
         wall_url = _file_to_data_url(wall)
         ladder_url = _file_to_data_url(ladder)
-        chest_url = _file_to_data_url(chest)
         ghost_url = _file_to_data_url(ghost)
         crab_url = _file_to_data_url(crab)
 
         # Player tile
         tile_content.extend([
             {"type": "text", "text": "This is the Player tile:"},
-            {"type": "image_url", "image_url": {"url": player_url}},
+            {"type": "image_url", "image_url": {"url": player_url, "original_path": player}},
             {"type": "text", "text": "- player (you): The player character. A person with brown hair and a blue scarf and red pants, you have attack power 4\n"}
         ])
 
         # Floor tile
         tile_content.extend([
             {"type": "text", "text": "This is a Floor tile:"},
-            {"type": "image_url", "image_url": {"url": floor_url}},
+            {"type": "image_url", "image_url": {"url": floor_url, "original_path": floor}},
             {"type": "text", "text": "- floor: A walkable tile. Teal-colored with a soft light dot in the center.\n- floor_dark: An unlit/out-of-sight floor tile (darker version of above)\n"}
         ])
 
         # Wall tile
         tile_content.extend([
             {"type": "text", "text": "This is a Wall tile:"},
-            {"type": "image_url", "image_url": {"url": wall_url}},
+            {"type": "image_url", "image_url": {"url": wall_url, "original_path": wall}},
             {"type": "text", "text": "- walls: you CANNOT pass this. A wall made of light grey bricks.\n- wall_dark: you CANNOT pass this. An unlit/out-of-sight wall (darker version of above)\n"}
         ])
 
         # Ladder tile
         tile_content.extend([
             {"type": "text", "text": "This is a Ladder tile:"},
-            {"type": "image_url", "image_url": {"url": ladder_url}},
-            {"type": "text", "text": "- ladder: press 'space' to descend when standing on it. A section of a wooden or copper-colored pixel art ladder.\n"}
+            {"type": "image_url", "image_url": {"url": ladder_url, "original_path": ladder}},
+            {"type": "text", "text": "- ladder: press 'space' to descend ONLY when standing EXACTLY on it (same coordinate). A section of a wooden or copper-colored pixel art ladder.\n"}
         ])
 
-        # Chest tile
-        tile_content.extend([
-            {"type": "text", "text": "This is a Chest tile:"},
-            {"type": "image_url", "image_url": {"url": chest_url}},
-            {"type": "text", "text": "- chest: A pixel art treasure chest, seemingly made of wood with metallic blue/silver reinforcements.\n"}
-        ])
+        # # Ghost enemy
+        # tile_content.extend([
+        #     {"type": "text", "text": "This is a Ghost enemy:"},
+        #     {"type": "image_url", "image_url": {"url": ghost_url}},
+        #     {"type": "text", "text": "- ghost: An easy enemy. A classic, light-grey pixel art ghost with its arms raised. ghost has 10 health and 3 attack  power\n"}
+        # ])
 
-        # Ghost enemy
-        tile_content.extend([
-            {"type": "text", "text": "This is a Ghost enemy:"},
-            {"type": "image_url", "image_url": {"url": ghost_url}},
-            {"type": "text", "text": "- ghost: An easy enemy. A classic, light-grey pixel art ghost with its arms raised. ghost has 10 health and 3 attack  power\n"}
-        ])
-
-        # Crab enemy
-        tile_content.extend([
-            {"type": "text", "text": "This is a Crab enemy:"},
-            {"type": "image_url", "image_url": {"url": crab_url}},
-            {"type": "text", "text": "- crab: a hard enemy. A red pixel art crab with large claws and small black eyes. troll has 15 health and 8 attack power\n"}
-        ])
+        # # Crab enemy
+        # tile_content.extend([
+        #     {"type": "text", "text": "This is a Crab enemy:"},
+        #     {"type": "image_url", "image_url": {"url": crab_url}},
+        #     {"type": "text", "text": "- crab: a hard enemy. A red pixel art crab with large claws and small black eyes. troll has 15 health and 8 attack power\n"}
+        # ])
 
         return tile_content
     
@@ -184,9 +179,9 @@ ACTIONS = {
     's': 'move down',
     'a': 'move left',
     'd': 'move right',
-    'space': 'descend / take ladder / stairs (only if standing on ladder)',
-    '.': 'wait / skip a turn',
-    'g': 'pick up item (only if standing on a chest)',
+    'space': 'descend / take ladder / stairs (ONLY if standing EXACTLY on ladder coordinate)',
+    '.': 'wait / skip a turn (do nothing)',
+    'g': 'pick up item (only if standing on a wooden box/chest)',
     'i': 'use health potion (if available)'
 }
 
@@ -194,61 +189,68 @@ def get_actions_description():
     """Generate a formatted string of all available actions."""
     return "\n".join([f"{key}: {desc}" for key, desc in ACTIONS.items()])
 
-def get_dungeon_system_prompt(use_visual_tiles: bool = False) -> str | List[Dict[str, Any]]:
+def get_dungeon_system_prompt(use_visual_tiles: bool = False) -> str:
     """Generate the dungeon system prompt.
     Args:
-        use_visual_tiles: If True, returns multimodal content with tile images
+        use_visual_tiles: Kept for compatibility but system prompt is always text-only now.
+                         Tile types will be handled separately in user messages.
     """
     base_prompt = f"""## Objective:
-You are an intelligent agent playing a dungeon exploration game.
-Your PRIMARY OBJECTIVE is to reach and descend the ladder to the next dungeon level efficiently.
+You are a highly capable agent tasked with efficiently exploring and descending dungeon levels.
+Your PRIMARY OBJECTIVE: Reach and descend the ladder to the next dungeon level as efficiently as possible.
 
-## Additional Instructions:
+## Instructions:
 1. **Identify Key Elements:**
-   - Detect your current position (represented by a character on the map).
-   - Scan the map for the ladder tile (brown with black).
+    - Detect your current position as the player.
+    - Locate the ladder tile on the map.
+    - You will receive a map image and game status in text form.
+    - You will also receive possible actions you can take in the current state. (some action not available meaning that direaction are wall)
 
-2. **If ladder Are Visible:**
-   - Navigate directly to the ladder using the shortest walkable path.
-   - When standing on the ladder, press 'space' to descend.
+2. **Ladder Navigation:**
+    - If the ladder is visible: Navigate toward it using the shortest walkable path. When your position / coordinate matches the ladder’s position (EXACTLY SAME COORDINATE), press 'space' to descend.
+    - If the ladder is NOT visible: Explore to reveal new areas, prioritizing unexplored or dark tiles and minimizing repeat steps.
 
-3. **If ladder Are NOT Visible:**
-   - Explore to reveal unexplored/dark areas.
-   - Avoid retracing your steps unnecessarily.
-
-4. **You have limited vision:**
-    - You can only see tiles become dark tiles when out of sight
-    - if you found pitch black side by side with tiles or dark tiles, there is part of the dungeon that is unexplored (no wall between it)
-
+3. **Avoid:**
+    - Repeating the same action sequences or retracing explored routes. (you will provide the coordinates you have visited and the action history so far)
+    - Dead-ends or blocked paths. If blocked, seek alternative paths rather than oscillating in the same area.
 ---
 
 ## Action Keys:
 {get_actions_description()}
 
+
 ---
 
 ## Response Format:
+<think>Your reasoning based on the current game state.</think>
+<action>[key]</action>
+"""
+
+    """ 
+    4. **You have limited vision:**
+    - You can only see tiles become darker tiles when out of sight
+    - if you found pitch black side by side with tiles or dark tiles, there is part of the dungeon that is unexplored (no wall between it)
+
+4. **Limited Vision:**
+    - Tiles become dark when out of sight, so prioritize exploration to maintain map awareness.    
+
+    ## Response Format:
 <think>
 [Your reasoning based on the current game state.]
 </think>
 <action>[key1, key2, key3, ...]</action>
+    """
 
-- When a clear path exists, provide a sequence of keys (e.g., d, d, s).
-- Use a single key only when a single immediate action is best (e.g., attack or wait).
-"""
+    # When not using visual tiles, include TILE_TYPES in the system prompt
+    if not use_visual_tiles:
+        tile_types_section = f"""
+---
 
-    if use_visual_tiles:
-        # Return multimodal content with images
-        content = [
-            {"type": "text", "text": base_prompt + "\n\n## Tile Types:"}
-        ]
-        visual_tiles = get_tile_types(1)  # Get visual tile types
-        if isinstance(visual_tiles, list):
-            content.extend(visual_tiles)
-        return content
-    else:
-        # Return text-only prompt
-        return base_prompt + f"\n\n## Tile Types:\n{get_tile_types(0)}"
+## Tile Types Reference:
+{TILE_TYPES}"""
+        base_prompt += tile_types_section
+
+    return base_prompt
 
 # Keep the old constant for backward compatibility
 DUNGEON_SYSTEM_PROMPT = get_dungeon_system_prompt(False)

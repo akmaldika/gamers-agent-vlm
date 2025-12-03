@@ -1,25 +1,101 @@
-# Simple Dungeon Game AI Configuration
+# Dungeon Game AI Configuration
 
-# Model settings
-model: "gpt-4o-mini"  # Options: gpt-4o-mini, gpt-4o
-
-# AI parameters
-max_tokens: 500
-temperature: 0.5
-
-# Map selection (null for procedural generation)
-map_file: null  # Example: "data/map_dataset/1_simple_navigation/single_turn.txt"
-
-# Logging settings
-log:
-  path: "data/log/dungeon_escape_ai"
-  naming: "{session_id}-game"  # {session_id} will be replaced with incrementing number
-
-# Game settings
-max_steps: 100
-api_url: "http://localhost:8000"
-
-# Hydra settings
+# Hydra Settings (No output folder)
 hydra:
+  output_subdir: null
   run:
-    dir: ./outputs/${now:%Y-%m-%d_%H-%M-%S}
+    dir: .
+
+# Client Settings (The Brain)
+client:
+  # Provider: "openai" (Cloud) or "local_dgx_itb" (Self-hosted)
+  # - openai: Uses OpenAIWrapper
+  # - local_dgx_itb: Uses ITBDGXClient (standard OpenAI-compatible chat completions)
+  provider: "local_dgx_itb"
+
+  # Model ID to send to the API
+  # Based on provider:
+  # - openai: All GPT models (check OpenAI web for latest)
+  # - local_dgx_itb: Only supports the following loaded models:
+  #     - Qwen/Qwen2-VL-7B-Instruct
+  #     - Qwen/Qwen2.5-VL-7B-Instruct
+  #     - Qwen/Qwen3-VL-7B-Instruct
+  #     - Qwen/Qwen3-VL-8B-Thinking
+  #     - zai-org/GLM-4.1V-9B-Thinking
+  #     - zai-org/GLM-4.5V
+  model: "Qwen/Qwen2.5-VL-7B-Instruct"
+
+  # Connection details
+  # base_url: Required for 'local_dgx_itb'. Ignored for 'openai' unless using a proxy.
+  base_url: "http://localhost:8001"
+
+  # API Type: "chat" (Standard) or "responses" (OpenAI Stateful)
+  # Note: This setting is ONLY for the 'openai' provider.
+  api_type: "chat"
+
+# Agent Settings (The Behavior)
+agent:
+  # Maximum number of loops/actions the agent can take per level.
+  # This is the limit of how many times the agent calls the model/client.
+  max_loops: 100
+
+  # Manual Mode: If true, exports state to ./input/ for human testing instead of calling the model.
+  # Useful for generating text prompts to test manually in web interfaces (e.g. ChatGPT web).
+  manual_mode: false
+
+  # Model Parameters
+  params:
+    # Maximum number of tokens the model can generate in the response.
+    max_output_tokens: 1200
+
+    # Randomness of the output (0.0 - 2.0).
+    # Higher values = more random, Lower values = more deterministic.
+    # Used for most models (GPT-4, Qwen, etc.).
+    temperature: 0.8
+
+    # Reasoning effort level.
+    # Used ONLY for GPT-5 models (options: low, medium, high).
+    thinking_level: "low"
+
+    # Time to wait (in seconds) ONLY if a Rate Limit (429) error occurs from the API.
+    rate_limit_delay: 3.0
+
+# Prompt Settings (The Context)
+prompt:
+  # Number of previous User(Observation)-Assistant(Action) pairs to include in the prompt.
+  # 0 = Markovian (current state only), >0 = Short-term memory.
+  history_count: 0
+
+  # Whether to include Few-Shot examples in the prompt to guide the model's behavior.
+  use_fewshot: false
+
+  # Whether to include a dictionary of visual tile reference images in the prompt.
+  use_visual_tiles: false
+
+  # Number of past actions (e.g. ["MOVE_UP", "ATTACK"]) to list in the text prompt.
+  # Provides long-term memory of the path taken.
+  action_history_count: 20
+
+  # Whether to cache the system prompt using OpenAI's 'responses' API sessions.
+  # Requires client.api_type="responses".
+  cache_system_prompt: false
+
+# Game Settings (The Environment)
+game:
+  # Base URL for the game API server
+  base_url: "http://localhost:8000"
+
+  execution:
+    # Time to wait (in seconds) between every game loop to pace the agent and avoid flooding the server.
+    step_delay: 1.0
+
+    # Time to wait (in seconds) for the server to fully load the map before the agent starts.
+    start_wait: 3.5
+
+# Logging
+log:
+  path: "log/dungeon_escape_ai"
+  naming: "{model_name}-{session_id}-game"
+
+# Map Selection
+map_file: null

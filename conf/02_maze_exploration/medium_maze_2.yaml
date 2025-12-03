@@ -1,0 +1,24 @@
+# @package _global_
+
+# Config chain: config.yaml → _category_defaults → this file
+defaults:
+  - _category_defaults  # Loads _category_defaults.yaml from same folder
+  - _self_              # Ensure this file's values override defaults
+
+# Specific settings for medium maze 2
+map_file: "data/map_dataset/02_maze_exploration/medium_maze_2.txt"
+
+log:
+  # naming: "medium_maze_2-h5-ah-fs0-vt0-limited-{model_name}"
+  naming: "medium_maze_2-h5-ah-fs0-vt0-limited-{model_name}"
+
+# h0: 0 history count / hf5 : 5 history count
+# fs0: no few shot / fs: with few shot
+# vt0: no visual tiles  / vt: with visual tiles
+# all: all valid action / limited: limited valid action
+
+prompt:
+  history_count: 5        # Short history is enough for this maze
+  use_fewshot: false      # Start with zero-shot
+  use_visual_tiles: false # Text-only by default
+  # action_history_count: 25

@@ -3,8 +3,9 @@
 defaults:
   - config
 
-map_file: "data/map_dataset/5_basic_combat/junction_monster.txt"
-max_steps: 30
+map_file: "data/map_dataset/3_combat_or_single_threat_avoidance/strong_monster.txt"
+agent:
+  max_loops: 30
 
 log:
-  naming: "junction_monster"
+  naming: "strong_monster"

@@ -1,0 +1,32 @@
+# @package _global_
+# Category-level config for 01_navigation
+# This inherits from root config and adds navigation-specific defaults
+model: "gpt-4o-mini"
+# model: "gpt-4.1-mini"
+# model: "gpt-5-mini"
+# model: "Qwen/Qwen2-VL-7B-Instruct"
+# model: "Qwen/Qwen2.5-VL-7B-Instruct"
+# model: "Qwen/Qwen3-VL-7B-Instruct"
+# model: "Qwen/Qwen3-VL-8B-Thinking"
+# model: "zai-org/GLM-4.1V-9B-Thinking"
+# model: "zai-org/GLM-4.5V"
+
+
+defaults:
+  - /config  # ABSOLUTE path to root config.yaml (with leading slash)
+
+# Navigation category defaults
+agent:
+  max_loops: 50  # Default for navigation tasks (can be overridden per experiment)
+
+# Default prompt settings for navigation
+prompt:
+  history_count: 0        # Navigation usually doesn't need history
+  use_fewshot: false      # Start with zero-shot
+  use_visual_tiles: false # Text-only by default
+  action_history_count: 0
+  cache_system_prompt: false
+
+# Default log naming pattern for navigation
+log:
+  naming: "nav-{session_id}-{model_name}"  # Will be overridden by specific experiments

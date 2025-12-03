@@ -132,7 +132,7 @@ class GameAPIClient:
             logger.error(f"Error processing screenshot: {e}")
             return None
     
-    def start_game(self, mode: str = "procedural", custom_map: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def start_game(self, mode: str = "procedural", custom_map: Optional[str] = None, fov_mode: str = "all") -> Optional[Dict[str, Any]]:
         """
         Start a new game.
         
@@ -146,7 +146,8 @@ class GameAPIClient:
         try:
             payload = {
                 "mode": mode,
-                "custom_map": custom_map
+                "custom_map": custom_map,
+                # "fov_mode": "all"
             }
             
             response = self.session.post(

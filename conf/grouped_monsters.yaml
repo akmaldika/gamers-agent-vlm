@@ -4,7 +4,8 @@ defaults:
   - config
 
 map_file: "data/map_dataset/4_multiple_threat_avoidance/grouped_monsters.txt"
-max_steps: 35
+agent:
+  max_loops: 35
 
 log:
   naming: "grouped_monsters"
