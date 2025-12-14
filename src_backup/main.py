@@ -26,7 +26,6 @@ from game_api_client import get_api_client
 
 load_dotenv()
 
-
 @dataclass
 class GameStep:
     step_number: int
@@ -44,12 +43,7 @@ TestMessage = namedtuple("TestMessage", ["role", "content", "attachment"])
 
 
 class DungeonAgent:
-    def __init__(
-        self,
-        api_key: str,
-        logger: Optional[SimpleGameLogger] = None,
-        config: Optional[DictConfig] = None,
-    ):
+    def __init__(self, api_key: str, logger: Optional[SimpleGameLogger] = None, config: Optional[DictConfig] = None):
         from types import SimpleNamespace
 
         if config:
@@ -57,33 +51,29 @@ class DungeonAgent:
             client_cfg = config.client
             agent_cfg = config.agent
             params_cfg = agent_cfg.params
-
+            
             model_id = client_cfg.model
             temperature = params_cfg.temperature
             max_tokens = params_cfg.max_output_tokens
             thinking_level = getattr(params_cfg, "thinking_level", "low")
-
+            
             provider = client_cfg.provider
             base_url = client_cfg.base_url
             api_type = getattr(client_cfg, "api_type", "chat")
-
+            
             rate_limit_delay = getattr(params_cfg, "rate_limit_delay", 2.0)
-
+            
             # API Key Logic
             api_key_env = getattr(client_cfg, "api_key_env", None)
             if provider == "openai":
                 api_key_value = os.getenv("OPENAI_API_KEY", "")
             elif provider == "local_dgx_itb":
-                # Use configured env var or default to VLM_API_KEY or ITB_DGX_API_KEY
-                if api_key_env:
-                    api_key_value = os.getenv(api_key_env, "")
-                else:
-                    api_key_value = os.getenv("VLM_API_KEY") or os.getenv(
-                        "ITB_DGX_API_KEY", ""
-                    )
+                # Use configured env var or default to ITB_DGX_API_KEY
+                env_var_name = api_key_env if api_key_env else "ITB_DGX_API_KEY"
+                api_key_value = os.getenv(env_var_name, "")
             else:
                 api_key_value = os.getenv("OPENAI_API_KEY", "")
-
+                
         else:
             # Fallback defaults
             model_id = "gpt-4.1-mini"
@@ -133,39 +123,19 @@ class DungeonAgent:
             self.client = ITBDGXClient(client_config)
         else:
             self.client = OpenAIWrapper(client_config)
-
+            
         self.config = config
         self.steps: List[GameStep] = []
         self.current_step = 0  # Agent loop counter (resets per level)
         self.current_level: Optional[int] = None
         self.logger = logger
-        self.game_start_wait = (
-            getattr(config.game.execution, "start_wait", 1.5)
-            if config and hasattr(config, "game")
-            else 1.5
-        )
+        self.game_start_wait = getattr(config.game.execution, "start_wait", 1.5) if config and hasattr(config, "game") else 1.5
 
         try:
-            history_count = (
-                config.prompt.history_count
-                if config and hasattr(config, "prompt")
-                else 0
-            )
-            use_fewshot = (
-                config.prompt.use_fewshot
-                if config and hasattr(config, "prompt")
-                else False
-            )
-            use_visual_tiles = (
-                config.prompt.use_visual_tiles
-                if config and hasattr(config, "prompt")
-                else False
-            )
-            action_history_count = (
-                config.prompt.action_history_count
-                if config and hasattr(config, "prompt")
-                else 0
-            )
+            history_count = config.prompt.history_count if config and hasattr(config, "prompt") else 0
+            use_fewshot = config.prompt.use_fewshot if config and hasattr(config, "prompt") else False
+            use_visual_tiles = config.prompt.use_visual_tiles if config and hasattr(config, "prompt") else False
+            action_history_count = config.prompt.action_history_count if config and hasattr(config, "prompt") else 0
         except AttributeError:
             history_count = 0
             use_fewshot = False
@@ -183,40 +153,28 @@ class DungeonAgent:
         )
 
         prompt_cfg = getattr(config, "prompt", None) if config else None
-        cache_system_prompt = (
-            bool(getattr(prompt_cfg, "cache_system_prompt", False))
-            if prompt_cfg
-            else False
-        )
-
+        cache_system_prompt = bool(getattr(prompt_cfg, "cache_system_prompt", False)) if prompt_cfg else False
+        
         # IMPORTANT: System prompt caching via Responses sessions is DISABLED by default.
         supports_session_cache = hasattr(self.client, "ensure_prompt_session")
-        self.use_system_prompt_cache = (
-            cache_system_prompt and api_type == "responses" and supports_session_cache
-        )
+        self.use_system_prompt_cache = cache_system_prompt and api_type == "responses" and supports_session_cache
         self.prompt_session_id: Optional[str] = None
         self._session_cache_error_logged = False
-
+        
         if self.use_system_prompt_cache:
-            print(
-                "System prompt caching is ENABLED. Ensure system prompt is stable for this session."
-            )
+            print("⚠️  System prompt caching is ENABLED. Ensure system prompt is stable for this session.")
             self.prompt_session_id = self._ensure_prompt_session(initial_attempt=True)
         else:
             # System prompt will be included inline with each request (no session caching)
             pass
-
+        
         # Manual inference mode (for web-based VLM testing)
-        self.manual_mode = (
-            config.agent.manual_mode if config and hasattr(config, "agent") else False
-        )
-        self.manual_exporter = (
-            ManualInferenceExporter(export_dir="input") if self.manual_mode else None
-        )
-
+        self.manual_mode = config.agent.manual_mode if config and hasattr(config, "agent") else False
+        self.manual_exporter = ManualInferenceExporter(export_dir="input") if self.manual_mode else None
+        
         if self.manual_mode:
             print("=" * 60)
-            print("MANUAL INFERENCE MODE ENABLED")
+            print("⚠️  MANUAL INFERENCE MODE ENABLED")
             print("=" * 60)
             print("Game state will be exported to ./input/ folder")
             print("You need to manually test via web interface")
@@ -232,9 +190,7 @@ class DungeonAgent:
             print(f"Error checking game completion: {e}")
             return False
 
-    def get_action_with_react(
-        self, image_path: str, game_state: str, step_number: int = 0
-    ) -> tuple[List[str], List[dict], Any, dict]:
+    def get_action_with_react(self, image_path: str, game_state: str, step_number: int = 0) -> tuple[List[str], List[dict], Any, dict]:
         self.prompt_manager.update_observation(
             step_number=step_number,
             image_path=image_path,
@@ -249,9 +205,7 @@ class DungeonAgent:
 
         # MANUAL INFERENCE MODE: Export state and wait for manual input
         if self.manual_mode and self.manual_exporter:
-            return self._handle_manual_inference(
-                messages, image_path, game_state, step_number
-            )
+            return self._handle_manual_inference(messages, image_path, game_state, step_number)
 
         test_messages = []
         input_messages_for_log = messages.copy()
@@ -266,35 +220,22 @@ class DungeonAgent:
                     elif content_item["type"] == "image_url":
                         if step_number > 0:
                             from PIL import Image as PILImage
-
                             try:
                                 image_content = PILImage.open(image_path)
                             except Exception as e:
-                                print(
-                                    f"Warning: Could not load image {image_path}: {e}"
-                                )
-                test_messages.append(
-                    TestMessage(
-                        role=msg["role"], content=text_content, attachment=image_content
-                    )
-                )
+                                print(f"Warning: Could not load image {image_path}: {e}")
+                test_messages.append(TestMessage(role=msg["role"], content=text_content, attachment=image_content))
             else:
-                test_messages.append(
-                    TestMessage(
-                        role=msg["role"], content=msg["content"], attachment=None
-                    )
-                )
+                test_messages.append(TestMessage(role=msg["role"], content=msg["content"], attachment=None))
 
         response = self.client.generate(test_messages, session_id=session_id)
         raw_response = response.completion if response.completion else ""
-
+        
         # Log token usage to monitor rate limits
-        if hasattr(response, "input_tokens") and hasattr(response, "output_tokens"):
+        if hasattr(response, 'input_tokens') and hasattr(response, 'output_tokens'):
             total_tokens = response.input_tokens + response.output_tokens
-            print(
-                f"Token usage: {response.input_tokens} in + {response.output_tokens} out = {total_tokens} total"
-            )
-
+            print(f"Token usage: {response.input_tokens} in + {response.output_tokens} out = {total_tokens} total")
+        
         # print(self._format_model_output_for_display(raw_response))
         reasoning, actions = self.parse_ai_response(raw_response)
 
@@ -303,10 +244,8 @@ class DungeonAgent:
 
         parsed_action = {"reasoning": reasoning, "actions": actions}
         return actions, input_messages_for_log, response, parsed_action
-
-    def _prepare_model_messages(
-        self, messages: List[dict]
-    ) -> tuple[List[dict], Optional[str]]:
+    
+    def _prepare_model_messages(self, messages: List[dict]) -> tuple[List[dict], Optional[str]]:
         """Drop the system message when a Responses session already stores it."""
         if not self.use_system_prompt_cache:
             return messages, None
@@ -338,15 +277,11 @@ class DungeonAgent:
         if session_id:
             self.prompt_session_id = session_id
             if initial_attempt:
-                print(
-                    "System prompt caching enabled via Responses session instructions."
-                )
+                print("System prompt caching enabled via Responses session instructions.")
             return session_id
 
         if not self._session_cache_error_logged:
-            print(
-                "Warning: Failed to create a Responses session for cached system prompt. Falling back to inline prompts."
-            )
+            print("Warning: Failed to create a Responses session for cached system prompt. Falling back to inline prompts.")
             self._session_cache_error_logged = True
 
         # Disable caching for the rest of the run to avoid repeated API calls.
@@ -354,9 +289,7 @@ class DungeonAgent:
         self.prompt_session_id = None
         return None
 
-    def _wait_for_active_game_state(
-        self, initial_state: Optional[dict]
-    ) -> Optional[dict]:
+    def _wait_for_active_game_state(self, initial_state: Optional[dict]) -> Optional[dict]:
         """Wait briefly until the API reports a non-completed game state."""
         wait_total = max(0.0, getattr(self, "game_start_wait", 0.0))
         if wait_total <= 0:
@@ -368,9 +301,7 @@ class DungeonAgent:
         if is_active(initial_state):
             return initial_state
 
-        print(
-            f"Waiting up to {wait_total:.1f}s for the dungeon API to load the next map..."
-        )
+        print(f"Waiting up to {wait_total:.1f}s for the dungeon API to load the next map...")
         poll_interval = min(0.5, max(0.1, wait_total / 5))
         deadline = time.time() + wait_total
         last_state = initial_state
@@ -384,31 +315,27 @@ class DungeonAgent:
             time.sleep(poll_interval)
 
         if last_state and last_state.get("is_done", False):
-            print(
-                "Warning: game still reports completion after grace period. Continuing anyway."
-            )
+            print("Warning: game still reports completion after grace period. Continuing anyway.")
         return last_state
-
-    def _handle_manual_inference(
-        self, messages: List[dict], image_path: str, game_state: str, step_number: int
-    ) -> tuple[List[str], List[dict], Any, dict]:
+    
+    def _handle_manual_inference(self, messages: List[dict], image_path: str, game_state: str, step_number: int) -> tuple[List[str], List[dict], Any, dict]:
         """Handle manual inference mode: export state and wait for user input."""
-
+        
         # Extract components from messages
         system_prompt = ""
         few_shot_text = ""
         history_text = ""
         few_shot_images = []
         analysis_prompt_text = ""
-
+        
         for msg in messages:
             role = msg["role"]
             content = msg["content"]
-
+            
             # System prompt
             if role == "system":
                 system_prompt = content if isinstance(content, str) else ""
-
+            
             # User messages (could be few-shot, history, or current state)
             elif role == "user":
                 if isinstance(content, list):
@@ -424,21 +351,15 @@ class DungeonAgent:
                                 original_path = image_url_obj.get("original_path", "")
                                 if "fewshot_" in original_path:
                                     few_shot_images.append(original_path)
-
+                    
                     combined_text = "\n".join(text_parts)
-
+                    
                     # Determine if this is few-shot or history
-                    if (
-                        "Example" in combined_text
-                        or "examples" in combined_text.lower()
-                    ):
+                    if "Example" in combined_text or "examples" in combined_text.lower():
                         few_shot_text += combined_text + "\n\n"
                     elif "Loop" in combined_text or step_number > 1:
                         # This might be history
-                        if (
-                            "Loop" in combined_text
-                            and f"Loop {step_number}" not in combined_text
-                        ):
+                        if "Loop" in combined_text and f"Loop {step_number}" not in combined_text:
                             history_text += combined_text + "\n\n"
 
                     if "Now analyze" in combined_text or "<think>" in combined_text:
@@ -449,7 +370,7 @@ class DungeonAgent:
                         few_shot_text += content + "\n\n"
                     if "Now analyze" in content or "<think>" in content:
                         analysis_prompt_text = content.strip()
-
+        
         # Collect visual tile image paths
         visual_tile_paths = []
         if self.prompt_manager.use_visual_tiles:
@@ -458,25 +379,17 @@ class DungeonAgent:
                 tile_path = tile_assets_dir / tile_name
                 if tile_path.exists():
                     visual_tile_paths.append(str(tile_path))
-
+        
         # Add few-shot images if any
-        all_reference_images = visual_tile_paths + [
-            img for img in few_shot_images if os.path.exists(img)
-        ]
-
+        all_reference_images = visual_tile_paths + [img for img in few_shot_images if os.path.exists(img)]
+        
         history_section = history_text.strip() if history_text else ""
-
+        
         # Export state with all context
-        max_tokens = (
-            getattr(self.config.agent.params, "max_output_tokens", 500)
-            if self.config
-            else 500
-        )
+        max_tokens = getattr(self.config.agent.params, 'max_output_tokens', 500) if self.config else 500
         observation_text = ""
         if self.prompt_manager.observations:
-            observation_text = self.prompt_manager.observations[
-                -1
-            ].game_state_text.strip()
+            observation_text = self.prompt_manager.observations[-1].game_state_text.strip()
 
         self.manual_exporter.export_state(
             game_state_image_path=image_path,
@@ -487,9 +400,9 @@ class DungeonAgent:
             current_situation_text=(observation_text or game_state).strip(),
             analysis_prompt=analysis_prompt_text if analysis_prompt_text else None,
             step_number=step_number,
-            max_tokens=max_tokens,
+            max_tokens=max_tokens
         )
-
+        
         print("\n" + "=" * 60)
         print(f" State exported to ./input/ folder (Step {step_number})")
         print("=" * 60)
@@ -500,7 +413,7 @@ class DungeonAgent:
         print("4. Get response from model")
         print("5. Enter the response below\n")
         print("=" * 60)
-
+        
         # Wait for user to input response
         print("\n  Paste the model's response (end with empty line):")
         response_lines = []
@@ -509,37 +422,31 @@ class DungeonAgent:
             if line.strip() == "":
                 break
             response_lines.append(line)
-
+        
         raw_response = "\n".join(response_lines)
-
+        
         # Parse response
         reasoning, actions = self.parse_ai_response(raw_response)
-
+        
         if actions and reasoning:
             self.prompt_manager.update_action(actions, reasoning, raw_response)
-
+        
         # Create mock response object
         from types import SimpleNamespace
-
         mock_response = SimpleNamespace(
             completion=raw_response,
             model_id="manual-glm4v",
             stop_reason="manual_input",
             input_tokens=0,
             output_tokens=0,
-            reasoning=None,
+            reasoning=None
         )
-
+        
         parsed_action = {"reasoning": reasoning, "actions": actions}
         return actions, messages, mock_response, parsed_action
 
     def add_step(self, action: str, reasoning: str = ""):
-        step = GameStep(
-            step_number=self.current_step + 1,
-            action=action,
-            timestamp=datetime.now(),
-            reasoning=reasoning,
-        )
+        step = GameStep(step_number=self.current_step + 1, action=action, timestamp=datetime.now(), reasoning=reasoning)
         self.steps.append(step)
         self.current_step += 1
         return step
@@ -548,16 +455,10 @@ class DungeonAgent:
         print("\nGame Session Summary")
         print(f"Total Loops: {self.current_step}")
         game_completed = self.check_game_completion()
-        print(
-            "Game Status: COMPLETED SUCCESSFULLY!"
-            if game_completed
-            else "Game Status: Session ended (not completed)"
-        )
+        print("Game Status: COMPLETED SUCCESSFULLY!" if game_completed else "Game Status: Session ended (not completed)")
         print("\nAll Loops:")
         for step in self.steps:
-            print(
-                f"Loop {step.step_number}: '{step.action}' at {step.timestamp.strftime('%H:%M:%S')}"
-            )
+            print(f"Loop {step.step_number}: '{step.action}' at {step.timestamp.strftime('%H:%M:%S')}")
         if self.logger:
             action_counts: dict[str, int] = {}
             for step in self.steps:
@@ -579,14 +480,7 @@ class DungeonAgent:
             }
             self.logger.finalize_session(summary_data)
 
-    def autonomous_game_loop(
-        self,
-        window_title: str = "Dungeon Escape AI",
-        max_steps: int = 100,
-        map_file_path: str | None = None,
-        custom_map: str | None = None,
-        base_url: str = "http://localhost:8000",
-    ):
+    def autonomous_game_loop(self, window_title: str = "Dungeon Escape AI", max_steps: int = 100, map_file_path: str | None = None, custom_map: str | None = None, base_url: str = "http://localhost:8000"):
         print("Dungeon Game Agent - Autonomous Mode")
         print(f"Agent will play automatically for max {max_steps} loops per level")
 
@@ -612,9 +506,7 @@ class DungeonAgent:
 
         print("SUCCESS: Game started successfully!")
         self.current_level = initial_state.get("dungeon_level")
-        print(
-            f"Initial state: Level {self.current_level}, Health {initial_state.get('player_health')}"
-        )
+        print(f"Initial state: Level {self.current_level}, Health {initial_state.get('player_health')}")
         print("Press Ctrl+C to stop manually\n")
 
         try:
@@ -625,9 +517,7 @@ class DungeonAgent:
                     print(f"Error getting game state: {e}")
                     current_game_state = None
 
-                if current_game_state and bool(
-                    current_game_state.get("is_done", False)
-                ):
+                if current_game_state and bool(current_game_state.get("is_done", False)):
                     print("Game completed! Completion detected in game state.")
                     print("Agent stopping automatically...")
                     break
@@ -637,25 +527,21 @@ class DungeonAgent:
                     if self.current_level is None:
                         self.current_level = level
                     elif level is not None and level != self.current_level:
-                        print(
-                            f"Level changed: {self.current_level} -> {level}. Resetting loop counter."
-                        )
+                        print(f"Level changed: {self.current_level} -> {level}. Resetting loop counter.")
                         self.current_level = level
                         self.current_step = 0
                         # Reset action history for new level
                         self.prompt_manager.reset_action_history()
 
                 if self.current_step >= max_steps:
-                    print(
-                        f"Reached max loops ({max_steps}) for level {self.current_level}. Stopping."
-                    )
+                    print(f"Reached max loops ({max_steps}) for level {self.current_level}. Stopping.")
                     break
 
                 step_num = self.current_step + 1
                 print(f"--- Loop {step_num} (Level {self.current_level}) ---")
 
                 # Save screenshot directly into the logger's images directory
-                if self.logger and hasattr(self.logger, "images_dir"):
+                if self.logger and hasattr(self.logger, 'images_dir'):
                     images_dir = Path(self.logger.images_dir)
                 else:
                     images_dir = Path("current")
@@ -692,18 +578,13 @@ class DungeonAgent:
                     game_state = "Analyze the dungeon carefully. Find the fastest path to ladder (stairs)."
 
                 try:
-                    actions, input_messages, output_response, parsed_action = (
-                        self.get_action_with_react(
-                            str(screenshot_path), game_state, step_num
-                        )
+                    actions, input_messages, output_response, parsed_action = self.get_action_with_react(
+                        str(screenshot_path), game_state, step_num
                     )
                     reasoning = parsed_action.get("reasoning", "No reasoning provided")
                     print(f"AI decided actions: {actions} (Total: {len(actions)})")
                     print(f"AI Reasoning: {reasoning}")
-                    if any(
-                        action.lower() in ["esc", "quit", "game over"]
-                        for action in actions
-                    ):
+                    if any(action.lower() in ["esc", "quit", "game over"] for action in actions):
                         print("Game over detected by AI")
                         break
                     if not actions:
@@ -716,43 +597,29 @@ class DungeonAgent:
                 try:
                     all_successful = True
                     for i, action in enumerate(actions):
-                        print(f"Executing action {i + 1}/{len(actions)}: {action}")
+                        print(f"Executing action {i+1}/{len(actions)}: {action}")
                         mapped_key = action.lower()
                         execution_successful = False
                         if mapped_key in ACTIONS:
-                            print(
-                                f"Sending key: {mapped_key} for action: {ACTIONS[mapped_key]}"
-                            )
+                            print(f"Sending key: {mapped_key} for action: {ACTIONS[mapped_key]}")
                             send_key(mapped_key, window_title)
                             execution_successful = True
                         else:
-                            print(
-                                f"Unknown action '{mapped_key}', trying direct key press"
-                            )
+                            print(f"Unknown action '{mapped_key}', trying direct key press")
                             send_key(mapped_key, window_title)
                             execution_successful = True
                         if not execution_successful:
                             all_successful = False
-                        print(
-                            f"Action {i + 1}/{len(actions)}: {action} -> {'TRUE' if execution_successful else '❌'}"
-                        )
+                        print(f"Action {i+1}/{len(actions)}: {action} -> {'TRUE' if execution_successful else '❌'}")
                         if i < len(actions) - 1:
                             time.sleep(0.2)
 
                     if self.logger and all_successful:
-                        self.logger.log_step(
-                            step_num,
-                            input_messages,
-                            output_response,
-                            parsed_action,
-                            str(screenshot_path),
-                        )
+                        self.logger.log_step(step_num, input_messages, output_response, parsed_action, str(screenshot_path))
 
                     for action in actions:
                         step = self.add_step(action, reasoning)
-                        print(
-                            f"Loop {step.step_number} completed: Action '{action}' processed"
-                        )
+                        print(f"Loop {step.step_number} completed: Action '{action}' processed")
                 except Exception as e:
                     error_msg = f"Error executing actions: {e}"
                     print(error_msg)
@@ -762,18 +629,10 @@ class DungeonAgent:
                             "actions": parsed_action.get("actions", []),
                             "error": str(e),
                         }
-                        self.logger.log_step(
-                            step_num,
-                            input_messages,
-                            output_response,
-                            error_parsed_action,
-                            str(screenshot_path),
-                        )
+                        self.logger.log_step(step_num, input_messages, output_response, error_parsed_action, str(screenshot_path))
                     continue
 
-                time.sleep(
-                    getattr(self.config.game.execution, "step_delay", 1.0)
-                )  # Configurable delay to avoid rate limits
+                time.sleep(getattr(self.config.game.execution, 'step_delay', 1.0))  # Configurable delay to avoid rate limits
                 print()
         except KeyboardInterrupt:
             print("\nGame interrupted by user!")
@@ -790,7 +649,7 @@ class DungeonAgent:
     def _send_escape_key(self, window_title: str) -> None:
         try:
             print("Sending ESC to cleanly exit manual map run...")
-            send_key("esc", window_title)
+            send_key('esc', window_title)
         except Exception as exc:
             print(f"Warning: Failed to send ESC key: {exc}")
 
@@ -832,17 +691,13 @@ class DungeonAgent:
         think_match = re.search(r"<think>(.*?)</think>", normalized_response, re.DOTALL)
         if think_match:
             reasoning = think_match.group(1).strip()
-        action_match = re.search(
-            r"<action>\[(.*?)\]</action>", normalized_response, re.DOTALL
-        )
+        action_match = re.search(r"<action>\[(.*?)\]</action>", normalized_response, re.DOTALL)
         if action_match:
             actions_str = action_match.group(1).strip()
-            parts = [p.strip() for p in actions_str.split(",")]
+            parts = [p.strip() for p in actions_str.split(',')]
             actions = [_normalize_action_token(p) for p in parts if p]
         else:
-            action_match = re.search(
-                r"<action>(.*?)</action>", normalized_response, re.DOTALL
-            )
+            action_match = re.search(r"<action>(.*?)</action>", normalized_response, re.DOTALL)
             if action_match:
                 single_action = _normalize_action_token(action_match.group(1).strip())
                 actions = [single_action] if single_action else []
@@ -855,14 +710,14 @@ def get_next_session_id(log_path: str) -> int:
     if not os.path.exists(log_path):
         return 1
 
-    existing_dirs = [d for d in os.listdir(log_path) if d.endswith("-game")]
+    existing_dirs = [d for d in os.listdir(log_path) if d.endswith('-game')]
     if not existing_dirs:
         return 1
 
     session_numbers = []
     for dir_name in existing_dirs:
         try:
-            session_num = int(dir_name.split("-")[0])
+            session_num = int(dir_name.split('-')[0])
             session_numbers.append(session_num)
         except (ValueError, IndexError):
             continue
@@ -883,9 +738,7 @@ def main(cfg: DictConfig):
     print(f"API URL: {game_base_url}")
     api_client = get_api_client(game_base_url)
     if not api_client.check_connection():
-        print(
-            "ERROR: Cannot connect to game API server. Please ensure the server is running."
-        )
+        print("ERROR: Cannot connect to game API server. Please ensure the server is running.")
         return
     else:
         print("CONNECTED: Game API server is ready")
@@ -905,18 +758,16 @@ def main(cfg: DictConfig):
 
     model_log_path = str(Path(cfg.log.path) / cfg.client.model)
     session_id = get_next_session_id(model_log_path)
-    log_name = cfg.log.naming.replace("{session_id}", str(session_id)).replace(
-        "{model_name}", cfg.client.model
-    )
-    logger = SimpleGameLogger(
-        game_name=log_name, base_path=model_log_path, use_custom_name=True
-    )
+    log_name = cfg.log.naming.replace("{session_id}", str(session_id)).replace("{model_name}", cfg.client.model)
+    logger = SimpleGameLogger(game_name=log_name, base_path=model_log_path, use_custom_name=True)
     print(f"Logging to: {logger.get_session_path()}")
 
     try:
         agent = DungeonAgent(api_key=api_key, logger=logger, config=cfg)
         result = agent.autonomous_game_loop(
-            max_steps=max_loops, map_file_path=map_file_path, base_url=game_base_url
+            max_steps=max_loops, 
+            map_file_path=map_file_path,
+            base_url=game_base_url
         )
         if result:
             print("Game completed successfully!")
@@ -927,7 +778,6 @@ def main(cfg: DictConfig):
     except Exception as e:
         print(f"ERROR: {e}")
         import traceback
-
         traceback.print_exc()
 
 

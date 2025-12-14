@@ -27,7 +27,7 @@ client:
 
   # Connection details
   # base_url: Required for 'local_dgx_itb'. Ignored for 'openai' unless using a proxy.
-  base_url: "http://localhost:8001"
+  base_url: "http://167.205.35.252:8011"
 
   # API Type: "chat" (Standard) or "responses" (OpenAI Stateful)
   # Note: This setting is ONLY for the 'openai' provider.
